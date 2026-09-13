@@ -1,0 +1,169 @@
+#include <FastLED.h>
+#include <WiFi.h>
+#include <FirebaseESP32.h>
+
+#define FIREBASE_HOST "hologramimagedb-fe55c-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "mz6AdxdEFkI8OMuQ2BVKxJN45sAhQd8UKHcnzgmf"
+#define WIFI_SSID "WIFI"
+#define WIFI_PASSWORD "PASSWORD"
+
+#define LED_PIN 2
+//#define HALL_PIN 4
+#define NUM_LEDS 12
+
+#define ARRAY_SIZE_X 24
+#define ARRAY_SIZE_Y 24
+#define ARRAY_SIZE_Z 3
+
+double centerX = 12.0;
+double centerY = 12.0;
+int angle = 0;
+//volatile unsigned long count = 1;
+//float calcDel;
+
+FirebaseData firebaseData;
+int dataArray[ARRAY_SIZE_X][ARRAY_SIZE_Y][ARRAY_SIZE_Z];
+CRGB leds[NUM_LEDS];
+
+void parseStringToArray(const String& data) {
+  int index = 0;
+  // Serial.println(data);
+  // Serial.println("-----------------");
+  for (int i = 0; i < ARRAY_SIZE_X; ++i) {
+    for (int j = 0; j < ARRAY_SIZE_Y; ++j) {
+      for (int k = 0; k < ARRAY_SIZE_Z; ++k) {
+        int nextComma = data.indexOf(',', index);
+        if (nextComma == -1) {
+          nextComma = data.length();
+        }
+        String valueString = data.substring(index, nextComma);
+        dataArray[i][j][k] = valueString.toInt();
+        index = nextComma + 1;
+      }
+      // Serial.print(dataArray[i][j][0]);
+      // Serial.print(",");
+      // Serial.print(dataArray[i][j][1]);
+      // Serial.print(",");
+      // Serial.print(dataArray[i][j][2]);
+      // Serial.print(",");
+    }
+  }
+}
+
+int rounding(double value) {
+  int intValue = (int)value;
+  double fractionalPart = value - intValue;
+
+  if (fractionalPart >= 0.5) {
+    return intValue + 1; // Round up
+  } else {
+    return intValue; // Round down
+  }
+}
+/*
+bool isValidCoordinate(int x, int y) {
+  return x >= 0 && x < 24 && y >= 0 && y < 24;
+}
+*/
+void drawRadialLEDStrip(int imageRGB[24][24][3] /*, unsigned long oneDegreeDelay*/) {
+  for (int i = 1; i <= NUM_LEDS; i++) {
+    int x = (centerX + i * cos(radians(angle)));
+    int y = (centerY + i * sin(radians(angle)));
+
+    //if (isValidCoordinate(x, y)) {
+    leds[i - 1] = CRGB(imageRGB[x][y][0], imageRGB[x][y][1], imageRGB[x][y][2]);
+    //}
+  }
+  FastLED.show();
+  //delayMicroseconds(10);
+  FastLED.clear();
+  delayMicroseconds(150);
+  angle++;
+  // if (angle > 360) {
+  //   angle = 0;
+  // }
+  //delay(100);
+
+}
+
+/*float calcDelay() {
+  unsigned long prevTime = millis();
+  unsigned long time = millis() - prevTime;
+  while (time < 1000) {
+    time = millis() - prevTime;
+    if (digitalRead(HALL_PIN) == LOW) {
+      count++;
+      delay(20);
+    }
+  }
+  // here we have count of rotations in 1 second
+
+  float rotationTimeMicro = (float(1000000) / float(count)) / float(360);
+  // Serial.print("Rotations: ");
+  // Serial.print(count);
+  // Serial.print(", One rotation time: ");
+  // Serial.println(rotationTimeMicro);
+  count = 1;
+  return rotationTimeMicro;
+}*/
+
+void setup() {
+  //pinMode(HALL_PIN, INPUT);
+  Serial.begin(115200);
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println("\nConnected to WiFi");
+
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  firebaseData.setResponseSize(16384);
+
+  // Ensure the database is connected
+  if (!Firebase.ready()) {
+    Serial.println("Firebase not ready, exiting...");
+    while (1);
+  }
+
+  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
+  FastLED.clear();
+}
+
+void loop() {
+  //calcDel = calcDelay();
+  for (int i = 0; i < 3; i++) {
+    String path = "/images/image" + String(i) + "/rgbMatrix";
+    Serial.println(path);
+    if (Firebase.getString(firebaseData, path)) {
+      String arrStr = firebaseData.stringData();
+
+      parseStringToArray(arrStr);
+      //printArray();
+      //if (digitalRead(HALL_PIN) == HIGH) {
+        unsigned long start = millis();
+        Serial.println("Printing to LEDS");
+        //drawRadialLEDStrip(dataArray);
+        FastLED.clear();
+        delay(1000);
+        angle = 0;
+        while (true) {
+          drawRadialLEDStrip(dataArray/*, calcDel*/);
+          if (millis() - start >= 60000) {
+            break;
+          }
+        }
+      //}
+    } else {
+      String path = "/noImage";
+      Serial.println("NOT CONNECTE TO FIREBASE");
+      if (Firebase.getString(firebaseData, path)) {
+        String arrStringNoImage = firebaseData.stringData();
+        parseStringToArray(arrStringNoImage);
+      }
+    }
+  }
+}

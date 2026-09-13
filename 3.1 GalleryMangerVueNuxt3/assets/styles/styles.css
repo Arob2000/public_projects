@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#imageGallery {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  #imageGallery > div {
+    width: 291px;
+    height: 520px;
+    overflow: hidden; /* Hide overflow if images are larger */
+  }
+  .modal-close-btn{
+    width : 25px;
+    height : 25px;
+  }
+  
+  .drag-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 24px;
+  }

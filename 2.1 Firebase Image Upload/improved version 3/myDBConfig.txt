@@ -1,0 +1,9 @@
+
+
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "hologramimagedb-fe55c.firebaseapp.com",
+        databaseURL: "https://hologramimagedb-fe55c-default-rtdb.firebaseio.com/",
+        projectId: "hologramimagedb-fe55c",
+        storageBucket: "hologramimagedb-fe55c.appspot.com",
+        messagingSenderId: "402381093241",
+        appId: "1:402381093241:web:a34cba6a03cd36593b57a8",
