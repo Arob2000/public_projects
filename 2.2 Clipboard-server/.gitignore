@@ -1,0 +1,4 @@
+# .gitignore
+node_modules/
+.env
+shared-clipboard-c1c6f-firebase-adminsdk-fbsvc-1e8728770c.json

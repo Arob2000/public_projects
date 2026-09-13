@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    /* @apply bg-gradient-to-tr from-red-900 to-black bg-no-repeat; */
+  /* background: linear-gradient(to bottom right, #000000, #004400, #99cc00); */
+}

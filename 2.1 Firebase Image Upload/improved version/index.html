@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Firebase Image Upload</title>
+    <!-- Add Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+
+    <!-- Add some CSS to center the button and carousel -->
+    <style>
+    * {
+      box-sizing: border-box;
+    }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      .choose-image {
+        .btn-secondary {
+          margin: 0;
+        }
+        margin: auto;
+        margin-left: 12%;
+      }
+
+      .upload-button{
+        margin-right: 11%;
+      }
+
+      .container{
+         width: auto;
+         height: auto;
+         margin: auto;
+         transform: scale(1.3);
+
+      }
+      /* Set max-width and max-height for the carousel */
+      .carousel {
+        max-width: 400px;
+        max-height: 400px;
+        margin: auto;
+        margin-bottom: 20px;
+      }
+
+      /* Set max-width for images inside the carousel */
+      .carousel-inner img,
+      .placeholder-img {
+        width: 120px !important; /* Adjusted width (24 * 5) */
+        height: 120px !important; /* Adjusted height (24 * 5) */
+        margin: auto;
+        object-fit: contain; /* Maintain aspect ratio */
+      }
+
+      /* styles for previous and next buttons */
+      .carousel-control-prev,
+      .carousel-control-next {
+        border: 0px solid #000;
+      }
+
+      .carousel-control-prev-icon,
+      .carousel-control-next-icon {
+        background-color: #000; /* Black background */
+      }
+
+      /* Style for file preview */
+      #filePreview {
+        margin-top: 10px;
+        max-width: 300px; /* Increased width for the preview */
+        width: 120px;
+        float: left;
+        visibility: hidden;
+      }
+
+      /* Style for file name */
+      #fileName {
+        margin-top: 10px;
+        font-weight: bold;
+      }
+
+      /* Style for the container under the Choose Image button */
+      #previewContainer {
+        text-align: center;
+        float: left;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div class="container">
+
+      <div id="LogoImageContainer">
+        <img id="LogoImage" src="" alt="Logo Image" />
+        <span>Persistence Of Vision Display For Hologramic Effect</span>
+      </div>
+      <hr>
+      <h5>Images in the Rotaion :</h5>
+      <!-- Image Carousel -->
+      <div id="imageCarousel" class="carousel slide mt-5" data-ride="carousel">
+        <div class="carousel-inner">
+          <!-- Carousel items will be dynamically added here -->
+        </div>
+        <a
+          class="carousel-control-prev"
+          href="#imageCarousel"
+          role="button"
+          data-slide="prev"
+        >
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="sr-only">Previous</span>
+        </a>
+        <a
+          class="carousel-control-next"
+          href="#imageCarousel"
+          role="button"
+          data-slide="next"
+        >
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="sr-only">Next</span>
+        </a>
+      </div>
+      <!-- Buttons for Upload Image and Choose File -->
+      <div class="d-flex">
+        <!-- Container for file name and preview under the Choose Image button -->
+        <div class="choose-image">
+          <label class="btn btn-secondary">
+            Choose Image
+            <input
+              type="file"
+              id="imageInput"
+              accept="image/*"
+              style="display: none"
+              onchange="previewImage('preview')"
+            />
+          </label>
+        </div>
+        <!-- Button to Upload Image -->
+        <button class="btn btn-primary upload-button" onclick="uploadImage()">
+          Upload Image
+        </button>
+      </div>
+
+      <div id="previewContainer">
+        <h6 id="fileName">Please upload an image!</h6>
+        <img id="filePreview" src="" alt="File Preview" />
+      </div>
+
+    </div>
+    <!-- Include Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/7.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.7.0/firebase-database.js"></script>
+  
+    <!-- Include JQuery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <!-- Add Bootstrap JS and Popper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <!-- Initialize Firebase -->
+    <script>
+      var firebaseConfig = {
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "hologramimagedb-fe55c.firebaseapp.com",
+        databaseURL: "https://hologramimagedb-fe55c-default-rtdb.firebaseio.com/",
+        projectId: "hologramimagedb-fe55c",
+        storageBucket: "hologramimagedb-fe55c.appspot.com",
+        messagingSenderId: "402381093241",
+        appId: "1:402381093241:web:a34cba6a03cd36593b57a8",
+      };
+      firebase.initializeApp(firebaseConfig);
+
+      // Function to show a modal with custom content
+      function showModal(title, message) {
+        $('#customModalLabel').text(title);
+        $('#customModalBody').text(message);
+        $('#customModal').modal('show');
+      }
+
+      // Function to check if the browser is online
+      function isOnline() {
+        return navigator.onLine;
+      }
+
+      // Function to handle online event
+      function handleOnline() {
+        showModal("", "Internet connection is restored.");
+      }
+
+      // Function to handle offline event
+      function handleOffline() {
+        showModal("Error", "No internet connection.");
+      }
+
+      // Listen for online and offline events to handle network changes
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      // Check the internet connection status when the page loads
+      if (!isOnline()) {
+        handleOffline();
+      }
+
+      // Function to load images from Firebase and display in the carousel
+      function loadImagesToCarousel() {
+        var carouselInner = document.querySelector(".carousel-inner");
+
+        // Clear existing carousel items
+        carouselInner.innerHTML = "";
+        // Retrieve image data from Firebase
+        firebase.database().ref("images").once("value")
+        .then(function (images) {
+          if (images.exists()) {
+            images.forEach(function (image) {
+              var imageName = image.key;
+              var imageData = image.val();
+
+              // Create a new carousel item
+              var carouselItem = document.createElement("div");
+              carouselItem.className = "carousel-item";
+
+              // Create an image element
+              var img = document.createElement("img");
+              img.src = "data:image/jpeg;base64," + imageData.imageBase64; // Set base64 image data
+              img.className = "d-block w-100";
+              img.alt = imageName;
+
+              // Append the image to the carousel item
+              carouselItem.appendChild(img);
+              // Append the carousel item to the carousel inner container
+              carouselInner.appendChild(carouselItem);
+            });
+
+            // Set the first item as active
+            carouselInner.firstChild.classList.add("active");
+
+          } else {
+            // If no images in Firebase
+            showModal("", "No Images In Firebase, carouesl will be empty.");
+          }
+          })
+          .catch(function (error) {
+            console.error("Error loading images from Firebase: ", error);
+            // If there's an error connecting to Firebase
+            showModal("Error", "error in connecting to Firebase.");
+
+          });
+          LoadLogoImageFromFirebase();
+      }
+
+      // Function to upload an image to Firebase
+      function uploadImage() {
+        var fileInput = document.getElementById("imageInput");
+        var file = fileInput.files[0];
+
+        // Check if a file is selected
+        if (file) {
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            var image = new Image();
+            image.onload = function () {
+              // Convert the image to an LED matrix
+              var ledMatrix = convertImageToLEDMatrix(image);
+              // set the file name + the counter value
+              var ImageName = file.name;
+              ImageName = ImageName.replace(/\.[^.]+$/, "");
+              ImageName = ImageName.replace(/[^a-zA-Z0-9]/g, "");
+
+              // Convert LED matrix array to a JSON string
+              var ledMatrixString = JSON.stringify(ledMatrix).replace(/[\[\]]/g,"");
+
+              var imageArray = {};
+              //Get the counter value from database
+              firebase.database().ref("imageCounter").once("value")
+              .then(function (imageCounterValue) {
+                  var counterValue = imageCounterValue.val();
+                  var fileName = "image" + counterValue;
+                  imageArray[fileName] = {
+                    ImageName: ImageName,
+                    imageBase64: e.target.result.split(",")[1], // Get base64 portion of data URL
+                    ledMatrix: ledMatrixString, // Store the LED matrix as a string
+                    imageWidth: image.naturalWidth
+                  };
+                  // Store the image data in the database
+                  firebase.database().ref("images").update(imageArray)
+                  .then(function () {
+                      // Update Counter Value in the database
+                      updateCounterValue();
+                      // Handle File Preview After Upload 
+                      previewImage("upload");
+                      // Reload images to update the carousel
+                      loadImagesToCarousel();
+                      console.log("LED Matrix uploaded successfully!");
+
+                      //Show Custom Modal With success Message
+                      showModal('Success', 'LED Matrix and image data uploaded successfully!');
+                    })
+                    .catch(function (error) {
+                      console.error("Error uploading image: ", error);
+                    });
+                })
+                .catch(function (error) {
+                  console.error("Error:", error);
+                });
+            };
+            image.src = e.target.result; 
+          };
+          // Read the file as a data URL
+          reader.readAsDataURL(file);
+          return; // Exit the function 
+        } else {
+          console.error("No file selected!");
+          // Show Custom Modal With Error Message
+          showModal('Error', 'No file selected!');
+          return; // Exit the function 
+        }
+      }
+
+      // Function to convert Image to LED Matrix (Black and White)
+      function convertImageToLEDMatrix(image) {
+        var canvas = document.createElement("canvas");
+        
+        var pngHeight = 12;
+        var pngWidth = image.naturalWidth;
+
+        canvas.width = pngWidth;
+        canvas.height = pngHeight;
+        var ctx = canvas.getContext("2d");
+
+        ctx.drawImage(image, 0, 0, pngWidth, pngHeight);
+        var imageData = ctx.getImageData(0, 0, pngWidth, pngHeight).data;
+
+        var bwMatrix = [];
+
+        var index = 0;
+        for (var x = 0; x < pngWidth; x++) {
+          bwMatrix[x] = [];
+          for (var y = 0; y < pngHeight; y++) {
+
+            var red = imageData[index];
+            var green = imageData[index + 1];
+            var blue = imageData[index + 2];
+
+            //use gray scale to decide if the value is 0 or 1 where white will evalute to 0 and black to 1
+            var grayscale = (0.3 * red + 0.59 * green + 0.11 * blue);
+            bwMatrix[x][y] = (grayscale > 128 )? 0 : 1;      
+
+            index += 4;
+          }
+        }
+        return bwMatrix;
+      }
+
+      // Function to reset file Preview 
+      function resetFilePreview(){
+        var fileInput = document.getElementById("imageInput");
+        var fileNameElement = document.getElementById("fileName");
+        var filePreviewElement = document.getElementById("filePreview");
+
+        filePreviewElement.src = "";
+        fileInput.value=null;
+        filePreviewElement.style.visibility = "hidden";
+        fileNameElement.textContent = "Please upload an image!";
+      }
+
+      // Function to preview the selected image
+      function previewImage(action) {
+        var fileInput = document.getElementById("imageInput");
+        var fileNameElement = document.getElementById("fileName");
+        var filePreviewElement = document.getElementById("filePreview");
+
+        if (fileInput.files && fileInput.files[0]) {
+          var file = fileInput.files[0];
+
+          // Check if the selected file is an image
+          if (file.type.startsWith("image/")) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+              var image = new Image();
+
+              image.onload = function () {
+                // Check if the image dimensions are 12x64 pixels
+                if (image.width <= 64 && image.height === 12) {
+                  filePreviewElement.src = e.target.result;
+                  filePreviewElement.style.visibility = "visible";
+                  
+                  if(action=="preview"){
+                  fileNameElement.textContent = "Image to upload: " + file.name;
+                  }
+                  else if(action=="upload"){
+                    fileNameElement.textContent = "Image Uploaded: " + file.name;
+                    fileInput.value=null;
+                  }
+                } else {
+                  // Reset the preview if the image dimensions are not correct
+                  resetFilePreview();
+                  showModal("Error","Image dimensions must be max at 12x64 pixels!");
+                  }
+              };
+
+              image.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          } else {
+            // Reset the preview if the selected file is not an image
+            resetFilePreview();
+
+            console.error("Selected file is not an image!");
+            // Show Custom Modal With Error Message
+            showModal('Error', 'Selected file is not an image!, Please select an image file!');
+          }
+        } else {
+          // Reset the preview if no file is selected
+          resetFilePreview();
+        }
+      }
+
+      // Function Update the counter value by 1 and when it reaches 2 it resets
+      function updateCounterValue() {
+        firebase.database().ref("imageCounter").transaction(function (currentValue) {
+            if (currentValue === 2) {
+              return 0;
+            } else {
+              return currentValue + 1;
+            }
+          })
+          .then(function (transactionResult) {
+            console.log("Transaction Result:", transactionResult);
+          })
+          .catch(function (error) {
+            console.error("Error during transaction:", error);
+          });
+      }
+
+      function LoadLogoImageFromFirebase() {
+        var uploadedImage = document.getElementById("LogoImage");
+
+        //Retrieve logo image data from Firebase
+        firebase
+          .database()
+          .ref("LogoImage")
+          .once("value")
+          .then(function (image) {
+            var imageData = image.val();
+            if (imageData) {
+              uploadedImage.src = "data:image/jpeg;base64," + imageData.imageBase64;
+              uploadedImage.style.visibility = "visible";
+            } else {
+              console.error("Image not found in Firebase.");
+            }
+          })
+          .catch(function (error) {
+            console.error("Error loading image from Firebase: ", error);
+          });
+      }
+
+      // Load images to the carousel on page load
+      loadImagesToCarousel();
+
+    </script>
+   
+    <!-- Add Bootstrap modal for custom messages -->
+    <div class="modal" tabindex="-1" role="dialog" id="customModal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="customModalLabel"></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" id="customModalBody">
+            <!-- Custom message content -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
